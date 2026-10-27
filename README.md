@@ -1,11 +1,10 @@
 # Vol Asmara
 
-Application mobile (PWA) qui suit le prix des vols **EgyptAir Genève ⇄ Asmara** pour le Ramadan 2027 :
-départ autour du **16.02.2027**, retour autour du **21.03.2027**, ±2 jours.
+Application mobile (PWA) qui suit le prix des vols **EgyptAir Genève ⇄ Asmara** aller-retour.
+Dates par défaut : **16.02.2027 → 21.03.2027** (Ramadan), modifiables dans l'app.
 
 - Le prix aller-retour en direct pour les dates choisies, affiché comme un billet.
 - Les dates d'aller et de retour se choisissent dans l'app.
-- Réponse claire sur les valises : **1 seule valise en soute comprise** (règle EgyptAir pour Asmara depuis le 01.01.2026).
 - Notification quand le prix baisse (≥ 10 CHF) **ou** passe sous le prix cible.
 - Fonctionne hors ligne avec les derniers prix connus.
 
@@ -67,7 +66,7 @@ Au maximum ≈ 240 recherches/mois, sous la limite gratuite de 250. Réglages da
 ## Limites à connaître
 - Les prix viennent de Google Flights : ce sont des **prix indicatifs**. Le prix final est celui d'EgyptAir au paiement.
 - Certains jours, Google Flights peut ne pas proposer EgyptAir : l'app garde alors le dernier prix connu et l'indique.
-- Le prix de la 2e valise n'est pas publié de façon fiable : à demander à EgyptAir avant d'acheter.
+- Bagages : depuis le 01.01.2026, EgyptAir n'inclut qu'une valise en soute pour Asmara. La 2e est payante.
 
 ## Tester en local
 ```bash
