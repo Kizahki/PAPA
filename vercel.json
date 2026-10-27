@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "functions": { "api/*.js": { "maxDuration": 60 } },
+  "crons": [{ "path": "/api/cron", "schedule": "12 5 * * *" }],
+  "headers": [
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }, { "key": "Service-Worker-Allowed", "value": "/" }] }
+  ]
+}

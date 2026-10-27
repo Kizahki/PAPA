@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Vol Asmara</title>
+  <meta name="description" content="Prix des vols EgyptAir Genève ⇄ Asmara pour le Ramadan 2027, avec alertes.">
+  <meta name="theme-color" content="#F4EEE3" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#14181F" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Vol Asmara">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></symbol>
+      <symbol id="i-plane" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m6 13 6 6 6-6"/></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+      <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m8 7 4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></symbol>
+    </defs>
+  </svg>
+
+  <main class="app">
+    <header class="top">
+      <div>
+        <h1>Genève – Asmara</h1>
+        <p class="sub">EgyptAir · aller-retour · Ramadan 2027</p>
+      </div>
+      <button class="icon-btn" id="refreshBtn" type="button" aria-label="Actualiser le prix">
+        <svg class="ico"><use href="#i-refresh"/></svg>
+      </button>
+    </header>
+
+    <div class="banner" id="installBanner" hidden></div>
+    <p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
+
+    <!-- Billet : le prix sélectionné -->
+    <section class="ticket" id="ticket" aria-labelledby="ticketTitle">
+      <div class="ticket-main">
+        <div class="route" aria-hidden="true">
+          <div><span class="code">GVA</span><span class="city">Genève</span></div>
+          <div class="path"><span class="dash"></span><svg class="ico plane"><use href="#i-plane"/></svg><span class="dash"></span></div>
+          <div class="right"><span class="code">ASM</span><span class="city">Asmara</span></div>
+        </div>
+
+        <h2 id="ticketTitle" class="ticket-label">Meilleur prix trouvé</h2>
+        <p class="price"><span id="price">—</span> <span class="cur">CHF</span></p>
+        <p class="trend" id="trend" hidden></p>
+
+        <dl class="dates">
+          <div><dt>Départ</dt><dd id="outDate">—</dd></div>
+          <div><dt>Retour</dt><dd id="retDate">—</dd></div>
+        </dl>
+        <p class="legs" id="legs"></p>
+      </div>
+
+      <div class="perf" aria-hidden="true"></div>
+
+      <div class="ticket-stub">
+        <a class="btn primary" id="bookBtn" href="https://www.egyptair.com" target="_blank" rel="noopener">
+          Réserver via Google Flights <svg class="ico"><use href="#i-ext"/></svg>
+        </a>
+        <p class="updated" id="updated"></p>
+      </div>
+    </section>
+
+    <!-- Grille des dates -->
+    <section class="block" aria-labelledby="gridTitle">
+      <div class="block-head">
+        <h2 id="gridTitle">Autres dates</h2>
+        <button class="link-btn" id="showBest" type="button" hidden>Revenir au moins cher</button>
+      </div>
+      <p class="muted">Touchez une case pour voir ce billet. Prix aller-retour en CHF.</p>
+      <div class="grid-wrap">
+        <table class="grid" id="grid">
+          <caption class="sr">Prix selon la date de départ (lignes) et de retour (colonnes)</caption>
+        </table>
+      </div>
+      <p class="legend"><span class="key best"></span> le moins cher <span class="key ref"></span> dates prévues</p>
+    </section>
+
+    <!-- Alertes -->
+    <section class="block" aria-labelledby="alertTitle">
+      <h2 id="alertTitle">Alertes</h2>
+      <p>Une notification arrive quand le prix baisse, ou quand il passe sous votre prix cible.</p>
+      <div class="alert-row">
+        <button class="btn secondary" id="pushBtn" type="button">
+          <svg class="ico"><use href="#i-bell"/></svg> <span>Activer les alertes</span>
+        </button>
+        <button class="link-btn" id="testPush" type="button" hidden>Envoyer un essai</button>
+      </div>
+      <p class="muted" id="pushHelp"></p>
+
+      <form class="target" id="targetForm">
+        <label for="target">Prix cible</label>
+        <div class="stepper">
+          <button type="button" data-step="-50" aria-label="Baisser de 50 francs">−</button>
+          <input id="target" name="target" type="number" inputmode="numeric" min="100" max="10000" step="10" placeholder="ex. 900">
+          <span class="cur">CHF</span>
+          <button type="button" data-step="50" aria-label="Augmenter de 50 francs">+</button>
+        </div>
+        <button class="btn secondary" type="submit">Enregistrer</button>
+      </form>
+    </section>
+
+    <!-- Historique -->
+    <section class="block" id="historyBlock" aria-labelledby="histTitle" hidden>
+      <h2 id="histTitle">Évolution du meilleur prix</h2>
+      <div id="chart"></div>
+    </section>
+
+    <footer class="foot">
+      <p>Prix indicatifs relevés sur Google Flights, mis à jour chaque matin. Le prix final est celui affiché par EgyptAir au moment de payer.</p>
+    </footer>
+  </main>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

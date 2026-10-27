@@ -1,0 +1,16 @@
+{
+  "name": "vol-asmara",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "MOCK_SERPAPI=1 node scripts/dev-server.js",
+    "vapid": "npx web-push generate-vapid-keys",
+    "test": "node test/run.mjs"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

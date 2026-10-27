@@ -1,0 +1,17 @@
+{
+  "name": "Vol Asmara – Prix EgyptAir",
+  "short_name": "Vol Asmara",
+  "description": "Prix des vols EgyptAir Genève ⇄ Asmara pour le Ramadan 2027, avec alertes.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4EEE3",
+  "theme_color": "#F4EEE3",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
