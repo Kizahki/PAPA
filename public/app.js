@@ -171,6 +171,11 @@ function renderGrid() {
         b.setAttribute('aria-label', `Départ ${dShort.format(toDate(o))}, retour ${dShort.format(toDate(r))} : ${fmtPrice(v.price)} francs`);
         b.setAttribute('aria-pressed', String(selectedKey === k));
         if (k === bestKey) b.classList.add('best');
+      } else if (v?.noFlight) {
+        b.textContent = 'Pas de vol';
+        b.classList.add('none');
+        b.disabled = true;
+        b.setAttribute('aria-label', `Départ ${dShort.format(toDate(o))}, retour ${dShort.format(toDate(r))} : pas de vol EgyptAir`);
       } else {
         b.textContent = '…';
         b.classList.add('empty');
@@ -224,7 +229,18 @@ function renderSettings() {
   $('#refreshBtn').title = state.manualLeft === 0 ? 'Actualisations du jour utilisées' : `Encore ${state.manualLeft} actualisation(s) aujourd’hui`;
 }
 
+let tripDirty = false;
+function renderTrip() {
+  const o = $('#outInput'), r = $('#retInput');
+  const out = state.settings?.out || state.trip.refOut, ret = state.settings?.ret || state.trip.refRet;
+  if (!tripDirty && document.activeElement !== o && document.activeElement !== r) { o.value = out; r.value = ret; }
+  o.min = state.today || '';
+  r.min = o.value || state.today || '';
+  $('#saveTrip').hidden = !tripDirty;
+}
+
 function render(first = false) {
+  renderTrip();
   renderTicket(first);
   renderGrid();
   renderChart();
@@ -233,6 +249,41 @@ function render(first = false) {
 }
 
 /* ---------- Actions ---------- */
+
+['#outInput', '#retInput'].forEach((id) =>
+  $(id).addEventListener('input', () => {
+    tripDirty = $('#outInput').value !== state.settings.out || $('#retInput').value !== state.settings.ret;
+    renderTrip();
+  }),
+);
+
+$('#tripForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const out = $('#outInput').value, ret = $('#retInput').value;
+  if (!out || !ret) return toast('Choisissez une date d’aller et une date de retour.', true);
+  if (ret <= out) return toast('Le retour doit être après l’aller.', true);
+  const btn = $('#saveTrip');
+  btn.disabled = true;
+  btn.textContent = 'Recherche du prix…';
+  try {
+    const r = await api('/api/settings', { method: 'POST', body: JSON.stringify({ out, ret }) });
+    tripDirty = false;
+    selectedKey = null;
+    await fetchStatus();
+    render(true);
+    toast(r.result?.price != null
+      ? `Dates enregistrées. Prix pour ces dates : ${fmtPrice(r.result.price)} CHF. Les dates voisines arrivent demain matin.`
+      : r.result?.noFlight
+        ? 'Dates enregistrées. EgyptAir ne propose pas de vol ce jour-là : regardez les dates voisines demain matin.'
+        : 'Dates enregistrées. Les prix arrivent au prochain relevé, demain matin.');
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Suivre ces dates';
+    renderTrip();
+  }
+});
 
 $('#grid').addEventListener('click', (e) => {
   const b = e.target.closest('.cell');

@@ -189,12 +189,15 @@ sup { font-size: 0.65em; }
 }
 .cell.empty { color: var(--ink-2); font-weight: 400; cursor: default; background: transparent; border: 1.5px dashed var(--line); }
 .cell.best { background: var(--accent); color: var(--accent-ink); }
+.cell.none { background: transparent; color: var(--ink-2); font-weight: 500; font-size: 0.8rem; line-height: 1.1; cursor: default; border: 1.5px solid var(--line); }
 .cell.ref { border-color: var(--ref); }
 .cell[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 1px; }
-.legend { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 0.95rem; flex-wrap: wrap; }
+.legend { display: flex; align-items: center; gap: 6px 16px; color: var(--ink-2); font-size: 0.95rem; flex-wrap: wrap; }
+.legend .lg { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .key { width: 16px; height: 16px; border-radius: 5px; display: inline-block; }
 .key.best { background: var(--accent); }
-.key.ref { border: 2px solid var(--ref); margin-left: 10px; }
+.key.ref { border: 2px solid var(--ref); }
+.key.none { border: 1.5px solid var(--line-2); }
 
 /* Alertes */
 .alert-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -233,3 +236,19 @@ sup { font-size: 0.65em; }
   .ticket.enter { animation: blurfade 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
   @keyframes blurfade { from { opacity: 0.35; filter: blur(8px); transform: translateY(10px); } }
 }
+
+/* Dates du voyage */
+.trip { display: grid; gap: 10px; margin-top: -8px; }
+.trip-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.trip .field { display: grid; gap: 6px; min-width: 0; }
+.trip label { font-weight: 700; }
+.trip input[type="date"] {
+  width: 100%; min-width: 0; min-height: 56px; padding: 0 12px; border-radius: 14px;
+  border: 1.5px solid var(--line-2); background: var(--card); color: var(--ink);
+  font: 700 1.1rem var(--font); font-variant-numeric: tabular-nums; caret-color: var(--accent);
+  -webkit-appearance: none; appearance: none; display: block;
+}
+.trip input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.trip input[type="date"]:disabled { opacity: 0.6; }
+.trip-note { color: var(--ink-2); font-size: 0.95rem; }
+@media (max-width: 360px) { .trip-fields { grid-template-columns: 1fr; } }

@@ -37,7 +37,7 @@
     <header class="top">
       <div>
         <h1>Genève – Asmara</h1>
-        <p class="sub">EgyptAir · aller-retour · Ramadan 2027</p>
+        <p class="sub">Vol aller-retour EgyptAir · 1 adulte · économie</p>
       </div>
       <button class="icon-btn" id="refreshBtn" type="button" aria-label="Actualiser le prix">
         <svg class="ico"><use href="#i-refresh"/></svg>
@@ -46,6 +46,17 @@
 
     <div class="banner" id="installBanner" hidden></div>
     <p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
+
+    <!-- Dates du voyage -->
+    <form class="trip" id="tripForm" aria-labelledby="tripTitle" novalidate>
+      <h2 id="tripTitle" class="sr">Dates du voyage</h2>
+      <div class="trip-fields">
+        <div class="field"><label for="outInput">Aller</label><input id="outInput" name="out" type="date" required></div>
+        <div class="field"><label for="retInput">Retour</label><input id="retInput" name="ret" type="date" required></div>
+      </div>
+      <p class="trip-note">Prix aller-retour, relevés aussi 2 jours avant et après chaque date.</p>
+      <button class="btn primary" type="submit" id="saveTrip" hidden>Suivre ces dates</button>
+    </form>
 
     <!-- Billet : le prix sélectionné -->
     <section class="ticket" id="ticket" aria-labelledby="ticketTitle">
@@ -89,7 +100,7 @@
           <caption class="sr">Prix selon la date de départ (lignes) et de retour (colonnes)</caption>
         </table>
       </div>
-      <p class="legend"><span class="key best"></span> le moins cher <span class="key ref"></span> dates prévues</p>
+      <p class="legend"><span class="lg"><span class="key best"></span> le moins cher</span><span class="lg"><span class="key ref"></span> vos dates</span><span class="lg"><span class="key none"></span> pas de vol EgyptAir</span></p>
     </section>
 
     <!-- Alertes -->
