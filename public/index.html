@@ -39,7 +39,7 @@
         <h1>Genève – Asmara</h1>
         <p class="sub">Vol aller-retour EgyptAir · 1 adulte · économie</p>
       </div>
-      <button class="icon-btn" id="refreshBtn" type="button" aria-label="Actualiser le prix">
+      <button class="icon-btn" id="refreshBtn" type="button" aria-label="Chercher le prix maintenant">
         <svg class="ico"><use href="#i-refresh"/></svg>
       </button>
     </header>
@@ -54,7 +54,7 @@
         <div class="field"><label for="outInput">Aller</label><input id="outInput" name="out" type="date" required></div>
         <div class="field"><label for="retInput">Retour</label><input id="retInput" name="ret" type="date" required></div>
       </div>
-      <p class="trip-note">Prix aller-retour, relevés aussi 2 jours avant et après chaque date.</p>
+      <p class="trip-note">Le prix aller-retour pour ces dates s’affiche dès l’ouverture de l’app.</p>
       <button class="btn primary" type="submit" id="saveTrip" hidden>Suivre ces dates</button>
     </form>
 
@@ -67,7 +67,7 @@
           <div class="right"><span class="code">ASM</span><span class="city">Asmara</span></div>
         </div>
 
-        <h2 id="ticketTitle" class="ticket-label">Meilleur prix trouvé</h2>
+        <h2 id="ticketTitle" class="ticket-label">Prix actuel pour vos dates</h2>
         <p class="price"><span id="price">—</span> <span class="cur">CHF</span></p>
         <p class="trend" id="trend" hidden></p>
 
@@ -84,29 +84,14 @@
         <a class="btn primary" id="bookBtn" href="https://www.egyptair.com" target="_blank" rel="noopener">
           Réserver via Google Flights <svg class="ico"><use href="#i-ext"/></svg>
         </a>
-        <p class="updated" id="updated"></p>
+        <p class="updated" id="updated" aria-live="polite"></p>
       </div>
-    </section>
-
-    <!-- Grille des dates -->
-    <section class="block" aria-labelledby="gridTitle">
-      <div class="block-head">
-        <h2 id="gridTitle">Autres dates</h2>
-        <button class="link-btn" id="showBest" type="button" hidden>Revenir au moins cher</button>
-      </div>
-      <p class="muted">Touchez une case pour voir ce billet. Prix aller-retour en CHF.</p>
-      <div class="grid-wrap">
-        <table class="grid" id="grid">
-          <caption class="sr">Prix selon la date de départ (lignes) et de retour (colonnes)</caption>
-        </table>
-      </div>
-      <p class="legend"><span class="lg"><span class="key best"></span> le moins cher</span><span class="lg"><span class="key ref"></span> vos dates</span><span class="lg"><span class="key none"></span> pas de vol EgyptAir</span></p>
     </section>
 
     <!-- Alertes -->
     <section class="block" aria-labelledby="alertTitle">
       <h2 id="alertTitle">Alertes</h2>
-      <p>Une notification arrive quand le prix baisse, ou quand il passe sous votre prix cible.</p>
+      <p>Chaque matin, l’app vérifie le prix de vos dates. Une notification arrive seulement s’il baisse d’au moins 10&nbsp;CHF, ou s’il passe sous votre prix cible.</p>
       <div class="alert-row">
         <button class="btn secondary" id="pushBtn" type="button">
           <svg class="ico"><use href="#i-bell"/></svg> <span>Activer les alertes</span>
@@ -129,12 +114,12 @@
 
     <!-- Historique -->
     <section class="block" id="historyBlock" aria-labelledby="histTitle" hidden>
-      <h2 id="histTitle">Évolution du meilleur prix</h2>
+      <h2 id="histTitle">Évolution du prix</h2>
       <div id="chart"></div>
     </section>
 
     <footer class="foot">
-      <p>Prix indicatifs relevés sur Google Flights, mis à jour chaque matin. Le prix final est celui affiché par EgyptAir au moment de payer.</p>
+      <p>Prix indicatifs de Google Flights pour EgyptAir, 1 adulte, classe économique. Le prix final est celui affiché au moment de payer.</p>
     </footer>
   </main>
 

@@ -1,4 +1,4 @@
-const CACHE = 'vol-asmara-v1';
+const CACHE = 'vol-asmara-v2';
 const SHELL = ['/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest', '/icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {

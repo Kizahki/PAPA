@@ -6,13 +6,12 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const nf = new Intl.NumberFormat('fr-CH', { maximumFractionDigits: 0 });
 const dShort = new Intl.DateTimeFormat('fr-CH', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
 const dCol = new Intl.DateTimeFormat('fr-CH', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-const dDay = new Intl.DateTimeFormat('fr-CH', { weekday: 'short', timeZone: 'UTC' });
 const toDate = (iso) => new Date(iso + 'T12:00:00Z');
 const fmtPrice = (n) => nf.format(n);
 const fmtDur = (m) => (m ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}` : '');
 
 let state = null;
-let selectedKey = null; // null = le moins cher
+let loadingLive = false;
 
 /* ---------- Données ---------- */
 
@@ -20,10 +19,7 @@ function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch
 function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
 
 async function api(path, opts = {}) {
-  const res = await fetch(path, {
-    ...opts,
-    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
-  });
+  const res = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
   return data;
@@ -37,7 +33,27 @@ async function fetchStatus() {
     const cached = load(CACHE_KEY);
     if (!cached) throw e;
     state = cached;
-    toast('Pas de connexion : derniers prix enregistrés.', true);
+    toast('Pas de connexion : dernier prix enregistré.', true);
+  }
+}
+
+// Prix en direct pour les dates choisies (le serveur réutilise un prix de moins d'une heure).
+async function fetchLive(force = false) {
+  loadingLive = true;
+  renderUpdated();
+  try {
+    const { live } = force ? await api('/api/refresh', { method: 'POST' }) : await api('/api/live');
+    if (live) {
+      const changed = live.price !== state.live?.price;
+      state.live = live;
+      store(CACHE_KEY, state);
+      renderTicket(changed);
+      if (live.stale) toast('Recherche impossible pour le moment : dernier prix connu affiché.', true);
+    }
+    return live;
+  } finally {
+    loadingLive = false;
+    renderUpdated();
   }
 }
 
@@ -45,6 +61,7 @@ async function fetchStatus() {
 
 function toast(msg, isErr = false) {
   const t = $('#toast');
+  t.setAttribute('role', isErr ? 'alert' : 'status');
   t.textContent = msg;
   t.classList.toggle('err', isErr);
   t.hidden = false;
@@ -67,156 +84,91 @@ function tickTo(el, to) {
   const from = Number(load(SEEN_KEY)) || 0;
   store(SEEN_KEY, to);
   if (reduceMotion || !from || from === to) { el.textContent = fmtPrice(to); return; }
-  // Number ticker : défile depuis le dernier prix vu par l'utilisateur.
+  // Number ticker : défile depuis le dernier prix vu.
   const start = performance.now();
-  const dur = 1100;
   const step = (now) => {
-    const p = Math.min(1, (now - start) / dur);
-    const e = 1 - Math.pow(2, -10 * p);
-    el.textContent = fmtPrice(Math.round(from + (to - from) * e));
+    const p = Math.min(1, (now - start) / 1100);
+    el.textContent = fmtPrice(Math.round(from + (to - from) * (1 - Math.pow(2, -10 * p))));
     if (p < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
 
-function trendFor(entry) {
+function trendFor(live) {
   const el = $('#trend');
-  const prev = entry?.prevPrice;
-  if (entry?.price == null || prev == null) { el.hidden = true; return; }
-  const diff = entry.price - prev;
+  const prev = live?.prevPrice;
+  if (live?.price == null || prev == null || prev === live.price) { el.hidden = true; return; }
+  const diff = live.price - prev;
   el.hidden = false;
-  el.className = 'trend ' + (diff < 0 ? 'down' : diff > 0 ? 'up' : 'flat');
-  if (diff === 0) { el.textContent = 'Prix inchangé depuis le dernier relevé'; return; }
-  const icon = diff < 0 ? 'i-down' : 'i-up';
-  el.innerHTML = `<svg class="ico" aria-hidden="true"><use href="#${icon}"/></svg>`;
+  el.className = 'trend ' + (diff < 0 ? 'down' : 'up');
+  el.innerHTML = `<svg class="ico" aria-hidden="true"><use href="#${diff < 0 ? 'i-down' : 'i-up'}"/></svg>`;
   el.append(`${diff < 0 ? 'Baisse' : 'Hausse'} de ${fmtPrice(Math.abs(diff))} CHF`);
 }
 
-function renderTicket(first) {
-  const entry = selectedKey ? state.grid[selectedKey] : state.best;
-  const ticket = $('#ticket');
-  const isBest = !selectedKey || (state.best && selectedKey === `${state.best.out}_${state.best.ret}`);
-  $('#ticketTitle').textContent = isBest ? 'Meilleur prix trouvé' : 'Prix pour ces dates';
-  $('#showBest').hidden = isBest;
+function renderUpdated() {
+  const live = state?.live;
+  const el = $('#updated');
+  if (loadingLive) { el.textContent = 'Recherche du prix actuel…'; return; }
+  if (!live) { el.textContent = ''; return; }
+  el.textContent = `Prix vérifié ${ago(live.checkedAt)}${live.unavailable ? ' · plus proposé à la dernière recherche' : ''}`;
+}
 
-  if (!entry || entry.price == null) {
+function renderTicket(animate = false) {
+  const live = state.live;
+  const out = state.settings?.out || state.trip.refOut, ret = state.settings?.ret || state.trip.refRet;
+  $('#outDate').textContent = dShort.format(toDate(out));
+  $('#retDate').textContent = dShort.format(toDate(ret));
+  renderUpdated();
+
+  if (!live || live.price == null) {
     $('#price').textContent = '—';
     $('#trend').hidden = true;
-    const [o, r] = selectedKey ? selectedKey.split('_') : [state.trip.refOut, state.trip.refRet];
-    $('#outDate').textContent = dShort.format(toDate(o));
-    $('#retDate').textContent = dShort.format(toDate(r));
-    $('#legs').textContent = state.lastRun
-      ? 'Aucun vol EgyptAir trouvé pour ces dates au dernier relevé.'
-      : 'Premier relevé en cours de préparation. Touchez le bouton d’actualisation en haut.';
-    $('#updated').textContent = '';
+    $('#legs').textContent = live?.noFlight
+      ? 'EgyptAir ne propose pas de vol aller-retour à ces dates. Essayez un jour avant ou après.'
+      : loadingLive ? '' : 'Le prix s’affiche dans un instant.';
     $('#bookBtn').href = 'https://www.egyptair.com';
     return;
   }
 
-  if (first) {
-    tickTo($('#price'), entry.price);
-    ticket.classList.add('enter');
-  } else {
-    $('#price').textContent = fmtPrice(entry.price);
-  }
-  trendFor(entry);
-  $('#outDate').textContent = dShort.format(toDate(entry.out));
-  $('#retDate').textContent = dShort.format(toDate(entry.ret));
+  if (animate) { tickTo($('#price'), live.price); $('#ticket').classList.add('enter'); }
+  else $('#price').textContent = fmtPrice(live.price);
+  trendFor(live);
 
-  const stops = entry.stops || [];
+  const stops = live.stops || [];
   const via = stops.map((s) => (s.id === 'CAI' ? 'Le Caire' : s.name || s.id)).join(', ');
-  const parts = [];
   const viaTxt = stops.length === 1 && stops[0].id === 'CAI' ? 'au Caire' : `à ${via}`;
-  parts.push(stops.length === 0 ? 'Vol direct' : stops.length === 1 ? `1 escale ${viaTxt}` : `${stops.length} escales (${via})`);
-  if (entry.duration) parts.push(`${fmtDur(entry.duration)} de trajet à l’aller`);
-  const leg0 = entry.legs?.[0];
+  const parts = [stops.length === 0 ? 'Vol direct' : stops.length === 1 ? `1 escale ${viaTxt}` : `${stops.length} escales (${via})`];
+  if (live.duration) parts.push(`${fmtDur(live.duration)} de trajet à l’aller`);
+  const leg0 = live.legs?.[0];
   if (leg0?.fromTime) parts.push(`décollage ${leg0.fromTime.slice(-5)}`);
   $('#legs').textContent = parts.join(' · ');
-
-  $('#bookBtn').href = entry.url || 'https://www.egyptair.com';
-  $('#updated').textContent = `Relevé ${ago(entry.checkedAt || entry.at)}${entry.unavailable ? ' · plus proposé au dernier contrôle' : ''}`;
-}
-
-function renderGrid() {
-  const table = $('#grid');
-  const bestKey = state.best ? `${state.best.out}_${state.best.ret}` : null;
-  const head = document.createElement('thead');
-  const hr = document.createElement('tr');
-  hr.innerHTML = '<th class="corner" scope="col">Départ<br>Retour</th>';
-  for (const r of state.retDates) {
-    const th = document.createElement('th');
-    th.scope = 'col';
-    th.innerHTML = `${dDay.format(toDate(r))}<br>${dCol.format(toDate(r))}`;
-    hr.append(th);
-  }
-  head.append(hr);
-
-  const body = document.createElement('tbody');
-  for (const o of state.outDates) {
-    const tr = document.createElement('tr');
-    const th = document.createElement('th');
-    th.scope = 'row';
-    th.innerHTML = `${dDay.format(toDate(o))}<br>${dCol.format(toDate(o))}`;
-    tr.append(th);
-    for (const r of state.retDates) {
-      const k = `${o}_${r}`;
-      const v = state.grid[k];
-      const td = document.createElement('td');
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'cell';
-      b.dataset.key = k;
-      if (v?.price != null) {
-        b.textContent = fmtPrice(v.price);
-        b.setAttribute('aria-label', `Départ ${dShort.format(toDate(o))}, retour ${dShort.format(toDate(r))} : ${fmtPrice(v.price)} francs`);
-        b.setAttribute('aria-pressed', String(selectedKey === k));
-        if (k === bestKey) b.classList.add('best');
-      } else if (v?.noFlight) {
-        b.textContent = 'Pas de vol';
-        b.classList.add('none');
-        b.disabled = true;
-        b.setAttribute('aria-label', `Départ ${dShort.format(toDate(o))}, retour ${dShort.format(toDate(r))} : pas de vol EgyptAir`);
-      } else {
-        b.textContent = '…';
-        b.classList.add('empty');
-        b.disabled = true;
-        b.setAttribute('aria-label', `Départ ${dShort.format(toDate(o))}, retour ${dShort.format(toDate(r))} : pas encore relevé`);
-      }
-      if (k === state.refKey) b.classList.add('ref');
-      td.append(b);
-      tr.append(td);
-    }
-    body.append(tr);
-  }
-  table.querySelectorAll('thead, tbody').forEach((n) => n.remove());
-  table.append(head, body);
+  $('#bookBtn').href = live.url || 'https://www.egyptair.com';
 }
 
 function renderChart() {
-  const pts = (state.history || []).filter((h) => h.best != null);
+  const pts = (state.history || []).filter((h) => h.price != null);
   $('#historyBlock').hidden = pts.length < 2;
   if (pts.length < 2) return;
-  const W = 340, H = 150, padL = 44, padR = 8, padT = 12, padB = 26;
+  const W = 340, H = 150, padL = 44, padR = 8, padT = 14, padB = 26;
   const target = Number(state.settings?.target) || null;
-  const vals = pts.map((p) => p.best).concat(target ? [target] : []);
+  const vals = pts.map((p) => p.price).concat(target ? [target] : []);
   let min = Math.min(...vals), max = Math.max(...vals);
   if (max - min < 40) { min -= 20; max += 20; }
   const x = (i) => padL + (i / (pts.length - 1)) * (W - padL - padR);
   const y = (v) => padT + (1 - (v - min) / (max - min)) * (H - padT - padB);
-  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.best).toFixed(1)}`).join(' ');
-  const area = `${d} L${x(pts.length - 1)},${H - padB} L${x(0)},${H - padB} Z`;
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.price).toFixed(1)}`).join(' ');
   const last = pts[pts.length - 1];
   const fmtDay = (iso) => dCol.format(toDate(iso));
   $('#chart').innerHTML = `
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Meilleur prix du ${fmtDay(pts[0].day)} au ${fmtDay(last.day)} : de ${fmtPrice(pts[0].best)} à ${fmtPrice(last.best)} CHF">
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Prix du ${fmtDay(pts[0].day)} au ${fmtDay(last.day)} : de ${fmtPrice(pts[0].price)} à ${fmtPrice(last.price)} CHF">
       <line class="grid-line" x1="${padL}" x2="${W - padR}" y1="${y(max)}" y2="${y(max)}"/>
       <line class="grid-line" x1="${padL}" x2="${W - padR}" y1="${y(min)}" y2="${y(min)}"/>
       <text class="axis" x="${padL - 8}" y="${y(max) + 4}" text-anchor="end">${fmtPrice(max)}</text>
       <text class="axis" x="${padL - 8}" y="${y(min) + 4}" text-anchor="end">${fmtPrice(min)}</text>
-      ${target ? `<line class="target-line" x1="${padL}" x2="${W - padR}" y1="${y(target)}" y2="${y(target)}"/><text class="axis" x="${W - padR}" y="${y(target) - 6}" text-anchor="end">cible ${fmtPrice(target)}</text>` : ''}
-      <path class="area" d="${area}" opacity="0.6"/>
+      ${target ? `<line class="target-line" x1="${padL}" x2="${W - padR}" y1="${y(target)}" y2="${y(target)}"/><text class="axis" x="${padL}" y="${y(target) - 6}">cible ${fmtPrice(target)}</text>` : ''}
+      <path class="area" d="${d} L${x(pts.length - 1)},${H - padB} L${x(0)},${H - padB} Z" opacity="0.6"/>
       <path class="line" d="${d}"/>
-      <circle class="dot" cx="${x(pts.length - 1)}" cy="${y(last.best)}" r="5"/>
+      <circle class="dot" cx="${x(pts.length - 1)}" cy="${y(last.price)}" r="5"/>
       <text class="axis" x="${padL}" y="${H - 6}">${fmtDay(pts[0].day)}</text>
       <text class="axis" x="${W - padR}" y="${H - 6}" text-anchor="end">${fmtDay(last.day)}</text>
     </svg>`;
@@ -225,24 +177,26 @@ function renderChart() {
 function renderSettings() {
   const t = state.settings?.target;
   if (t && document.activeElement !== $('#target')) $('#target').value = t;
-  $('#refreshBtn').disabled = state.manualLeft === 0;
-  $('#refreshBtn').title = state.manualLeft === 0 ? 'Actualisations du jour utilisées' : `Encore ${state.manualLeft} actualisation(s) aujourd’hui`;
+  const left = state.forceLeft ?? 0;
+  $('#refreshBtn').disabled = left === 0 || loadingLive;
+  $('#refreshBtn').title = left === 0 ? 'Recherches manuelles du jour utilisées' : `Chercher maintenant (encore ${left} aujourd’hui)`;
 }
 
 let tripDirty = false;
 function renderTrip() {
   const o = $('#outInput'), r = $('#retInput');
-  const out = state.settings?.out || state.trip.refOut, ret = state.settings?.ret || state.trip.refRet;
-  if (!tripDirty && document.activeElement !== o && document.activeElement !== r) { o.value = out; r.value = ret; }
+  if (!tripDirty && document.activeElement !== o && document.activeElement !== r) {
+    o.value = state.settings?.out || state.trip.refOut;
+    r.value = state.settings?.ret || state.trip.refRet;
+  }
   o.min = state.today || '';
   r.min = o.value || state.today || '';
   $('#saveTrip').hidden = !tripDirty;
 }
 
-function render(first = false) {
+function render(animate = false) {
   renderTrip();
-  renderTicket(first);
-  renderGrid();
+  renderTicket(animate);
   renderChart();
   renderSettings();
   renderPush();
@@ -268,14 +222,13 @@ $('#tripForm').addEventListener('submit', async (e) => {
   try {
     const r = await api('/api/settings', { method: 'POST', body: JSON.stringify({ out, ret }) });
     tripDirty = false;
-    selectedKey = null;
     await fetchStatus();
     render(true);
     toast(r.result?.price != null
-      ? `Dates enregistrées. Prix pour ces dates : ${fmtPrice(r.result.price)} CHF. Les dates voisines arrivent demain matin.`
+      ? `Dates enregistrées : ${fmtPrice(r.result.price)} CHF aller-retour. Vous serez prévenu si le prix baisse.`
       : r.result?.noFlight
-        ? 'Dates enregistrées. EgyptAir ne propose pas de vol ce jour-là : regardez les dates voisines demain matin.'
-        : 'Dates enregistrées. Les prix arrivent au prochain relevé, demain matin.');
+        ? 'Dates enregistrées, mais EgyptAir ne propose pas de vol ces jours-là. Essayez un jour avant ou après.'
+        : 'Dates enregistrées. Le prix s’affichera à la prochaine ouverture.');
   } catch (err) {
     toast(err.message, true);
   } finally {
@@ -285,26 +238,14 @@ $('#tripForm').addEventListener('submit', async (e) => {
   }
 });
 
-$('#grid').addEventListener('click', (e) => {
-  const b = e.target.closest('.cell');
-  if (!b || b.disabled) return;
-  selectedKey = selectedKey === b.dataset.key ? null : b.dataset.key;
-  render();
-  $('#ticket').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-});
-
-$('#showBest').addEventListener('click', () => { selectedKey = null; render(); });
-
 $('#refreshBtn').addEventListener('click', async () => {
   const btn = $('#refreshBtn');
   btn.disabled = true;
   btn.classList.add('spin');
   try {
-    await api('/api/refresh', { method: 'POST' });
-    await fetchStatus();
-    selectedKey = null;
-    render(true);
-    toast('Prix mis à jour.');
+    await fetchLive(true);
+    state.forceLeft = Math.max(0, (state.forceLeft ?? 1) - 1);
+    toast('Prix vérifié à l’instant.');
   } catch (e) {
     toast(e.message, true);
   } finally {
@@ -316,7 +257,7 @@ $('#refreshBtn').addEventListener('click', async () => {
 document.querySelectorAll('.stepper [data-step]').forEach((b) =>
   b.addEventListener('click', () => {
     const input = $('#target');
-    const base = Number(input.value) || Math.round((state?.best?.price || 1000) / 50) * 50;
+    const base = Number(input.value) || Math.round((state?.live?.price || 1000) / 50) * 50;
     input.value = Math.max(100, base + Number(b.dataset.step));
   }),
 );
@@ -451,10 +392,18 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   if (cached) { state = cached; render(false); }
   try {
     await fetchStatus();
-    render(true);
+    render(!cached);
     if (state.demo) toast('Mode démonstration : prix fictifs.');
   } catch (e) {
-    toast('Impossible de charger les prix. Vérifiez la connexion.', true);
+    toast('Impossible de charger l’app. Vérifiez la connexion.', true);
+    return;
   }
   showInstall();
+  // Prix en direct à chaque ouverture, et quand l'app revient au premier plan.
+  fetchLive().catch((e) => toast(e.message, true));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !state?.live) return;
+    const age = Date.now() - new Date(state.live.checkedAt).getTime();
+    if (age > (state.liveTtlMin || 60) * 60000) fetchLive().catch(() => {});
+  });
 })();
